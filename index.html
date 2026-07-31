@@ -205,16 +205,16 @@ class Ball {
         }
         
         // Проверка на сбор девочкой ТОЛЬКО ДЛЯ ТОГО МЯЧА, ЧТО ЛЕТИТ
-        if (currentBallIndex !== this.index) return;
+if (currentBallIndex !== this.index) return; // <--- ЭТА СТРОКА КЛЮЧЕВАЯ!
 
-        const dx = girl.x - this.x;
-        const dy = girl.y - this.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance < girl.size / 2 + this.size / 2) {
-            this.caught = true;
-            showCongratulations(this.index);
-        }
+const dx = girl.x - this.x;
+const dy = girl.y - this.y;
+const distance = Math.sqrt(dx * dx + dy * dy);
+
+if (distance < girl.size / 2 + this.size / 2) {
+    this.caught = true;
+    showCongratulations(this.index);
+}
     }
     
     draw() {
