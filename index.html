@@ -110,7 +110,6 @@ const congratulations = [
     {text: "Текст поздравления", author: "Грэйс"},
     {text: "Текст поздравления", author: "Энни"},
     {text: "Текст поздравления", author: "Имя поздравителя"},
-    // Добавьте еще 7 таких строк!
 ];
 
 // --- Объекты игры ---
@@ -129,13 +128,13 @@ const BALL_COUNT = 10;
 const FIELD_PADDING = 50; // Чтобы мячи не улетали за интерфейс
 
 /* ⚠️ ВАЖНО! Вставьте сюда СВОИ прямые ссылки на raw.githubusercontent.com */
-const imgGirl = new Image();
+const imgGirl = new Image(); // Персонаж
 imgGirl.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/character.png'; 
 
-const imgBall = new Image();
+const imgBall = new Image(); // Мяч
 imgBall.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/ball.png';
 
-const imgBg = new Image();
+const imgBg = new Image(); // Фон
 imgBg.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/field.png';
 
 function resizeCanvas() {
@@ -148,49 +147,50 @@ function resizeCanvas() {
     }
 }
 
+// Класс мяча
 class Ball {
     constructor(index) {
         this.index = index;
         this.reset();
     }
     
+    // Генерирует новую траекторию полета
     reset() {
-    const edges = ['top', 'right', 'bottom', 'left'];
-    const edge = edges[Math.floor(Math.random() * edges.length)];
-    
-    switch(edge) {
-        case 'top':
-            this.x = Math.random() * (canvas.width - FIELD_PADDING * 2) + FIELD_PADDING;
-            this.y = -30;
-            break;
-        case 'right':
-            this.x = canvas.width + 30;
-            this.y = Math.random() * (canvas.height - FIELD_PADDING * 2) + FIELD_PADDING;
-            break;
-        case 'bottom':
-            this.x = Math.random() * (canvas.width - FIELD_PADDING * 2) + FIELD_PADDING;
-            this.y = canvas.height + 30;
-            break;
-        case 'left':
-            this.x = -30;
-            this.y = Math.random() * (canvas.height - FIELD_PADDING * 2) + FIELD_PADDING;
-            break;
+        const edges = ['top', 'right', 'bottom', 'left'];
+        const edge = edges[Math.floor(Math.random() * edges.length)];
+        
+        switch(edge) {
+            case 'top':
+                this.x = Math.random() * (canvas.width - FIELD_PADDING * 2) + FIELD_PADDING;
+                this.y = -30;
+                break;
+            case 'right':
+                this.x = canvas.width + 30;
+                this.y = Math.random() * (canvas.height - FIELD_PADDING * 2) + FIELD_PADDING;
+                break;
+            case 'bottom':
+                this.x = Math.random() * (canvas.width - FIELD_PADDING * 2) + FIELD_PADDING;
+                this.y = canvas.height + 30;
+                break;
+            case 'left':
+                this.x = -30;
+                this.y = Math.random() * (canvas.height - FIELD_PADDING * 2) + FIELD_PADDING;
+                break;
+        }
+        
+        this.size = 25;
+        this.caught = false;
+        
+        // Летит по прямой с небольшим отклонением
+        const angleToCenter = Math.atan2(canvas.height / 2 - this.y, canvas.width / 2 - this.x);
+        const randomAngle = angleToCenter + (Math.random() - 0.5) * 0.3; // +/- ~17 градусов
+        
+        this.speed = 0.8 + Math.random() * 1; // Скорость от 0.8 до 1.8 пикселя в кадр
+        this.vx = Math.cos(randomAngle) * this.speed;
+        this.vy = Math.sin(randomAngle) * this.speed;
     }
-    
-    this.size = 25;
-    this.caught = false;
-    
-    // Задаем вектор движения к центру, но со случайным отклонением
-    const angleToCenter = Math.atan2(canvas.height / 2 - this.y, canvas.width / 2 - this.x);
-    // *** Вот здесь я уменьшил угол ***
-    const randomAngle = angleToCenter + (Math.random() - 0.5) * 0.3; 
-    
-    // *** И вот здесь снизил скорость ***
-    this.speed = 0.8 + Math.random() * 1; // Средняя скорость от 0.8 до 1.8
-    this.vx = Math.cos(randomAngle) * this.speed;
-    this.vy = Math.sin(randomAngle) * this.sign(angleToCenter) * this.speed;
-}
-    
+
+    // Обновляет положение мяча
     update() {
         if (this.caught) return;
         
@@ -206,22 +206,25 @@ class Ball {
             this.vy *= -1;
             this.y = Math.max(FIELD_PADDING, Math.min(this.y, canvas.height - FIELD_PADDING));
         }
+
+        // Проверяем только тот мяч, который сейчас летит
+        if (currentBallIndex !== this.index) return;
+
+        // Проверка на сбор девочкой
+        const dx = girl.x - this.x;
+        const dy = girl.y - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // Проверка на сбор девочкой ТОЛЬКО ДЛЯ ТОГО МЯЧА, ЧТО ЛЕТИТ
-if (currentBallIndex !== this.index) return; // <--- ЭТА СТРОКА КЛЮЧЕВАЯ!
-
-const dx = girl.x - this.x;
-const dy = girl.y - this.y;
-const distance = Math.sqrt(dx * dx + dy * dy);
-
-if (distance < girl.size / 2 + this.size / 2) {
-    this.caught = true;
-    showCongratulations(this.index);
-}
+        // Увеличенная зона ловли (персонаж стал больше)
+        if (distance < girl.size / 2 + this.size / 2) {
+            this.caught = true;
+            showCongratulations(this.index);
+        }
     }
-    
+
+    // Рисует мяч
     draw() {
-        // Подсветка золотым контуром остается поверх картинки
+        // Подсветка золотым контуром
         if (this.caught) {
             ctx.beginPath();
             ctx.lineWidth = 4;
@@ -230,11 +233,25 @@ if (distance < girl.size / 2 + this.size / 2) {
             ctx.stroke();
         }
         
-        // Рисуем саму картинку мяча
-        ctx.drawImage(imgBall, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+        // Рисуем картинку или резервный круг
+        if (imgBall.complete) {
+            ctx.drawImage(
+                imgBall,
+                this.x - this.size / 2, // Левая верхняя точка
+                this.y - this.size / 2,
+                this.size,              // Ширина
+                this.size               // Высота
+            );
+        } else {
+            ctx.beginPath();
+            ctx.fillStyle = '#8b4513';
+            ctx.ellipse(this.x, this.y, this.size, this.size, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 }
 
+// Инициализация игры
 function initGame() {
     resizeCanvas();
     balls = [];
@@ -245,6 +262,7 @@ function initGame() {
     isPausedForPopup = false;
 }
 
+// Показывает плашку с поздравлением
 function showCongratulations(index) {
     isPausedForPopup = true;
     
@@ -259,6 +277,7 @@ function showCongratulations(index) {
     popup.classList.add('active');
 }
 
+// Закрывает плашку
 function hideCongratulations() {
     popup.classList.remove('active');
     setTimeout(() => {
@@ -275,12 +294,13 @@ function hideCongratulations() {
     }, 400); // Ждем завершения анимации CSS
 }
 
+// Конец игры
 function finishGame() {
     alert("Ты собрала все поздравления! Поздравляем!");
     initGame(); // Перезапуск цикла
 }
 
-// --- Игровой цикл ---
+// Основной цикл рендеринга
 function gameLoop() {
     if (isPausedForPopup) {
         requestAnimationFrame(gameLoop);
@@ -323,7 +343,13 @@ function gameLoop() {
 
     // Девочка 👧
     if (imgGirl.complete) {
-        ctx.drawImage(imgGirl, girl.x - girl.size / 2, girl.y - girl.size / 2, girl.size, girl.size);
+        ctx.drawImage(
+            imgGirl,
+            girl.x - girl.size / 2, // Левая верхняя точка персонажа
+            girl.y - girl.size / 2,
+            girl.size,
+            girl.size
+        );
     } else {
         ctx.fillStyle = '#ff6600';
         ctx.beginPath();
@@ -340,7 +366,7 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// --- Управление ---
+// Обработка ввода
 function handleInput() {
     let moveSpeed = 5;
     
