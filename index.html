@@ -286,6 +286,28 @@ function gameLoop() {
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function gameLoop() {
+    if (isPausedForPopup) {
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
+    // Фон
+    const bgImg = new Image();
+    bgImg.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/refs/heads/raw/main/field.png';
+    
+    if (bgImg.complete) {
+        // Растягиваем фон на всё поле
+        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+    } else {
+        // Старая заливка цветом пока грузится картинка
+        ctx.fillStyle = '#2d5a27'; /* Трава */
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Далее идет ваш существующий код разметки поля...
+    ctx.strokeStyle = '#ffffff40';
+    ...
 
     // Рисуем разметку поля для квиддича (простые линии)
     ctx.strokeStyle = '#ffffff40';
@@ -295,22 +317,6 @@ function gameLoop() {
     ctx.moveTo(canvas.width / 2, FIELD_PADDING);
     ctx.lineTo(canvas.width / 2, canvas.height - FIELD_PADDING);
     ctx.stroke();
-    
-    // Три кольца (ворота) - золотистые эллипсы
-    ctx.fillStyle = '#f1c40f';
-    // Верхнее кольцо
-    ctx.beginPath();
-    ctx.ellipse(canvas.width / 2, FIELD_PADDING + 50, 40, 15, 0, 0, Math.PI * 2);
-    ctx.fill();
-    // Нижние кольца
-    [canvas.height / 3, canvas.height / 3 * 2].forEach(yPos => {
-        ctx.beginPath();
-        ctx.ellipse(FIELD_PADDING + 50, yPos, 15, 40, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(canvas.width - FIELD_PADDING - 50, yPos, 15, 40, 0, 0, Math.PI * 2);
-        ctx.fill();
-    });
 
     // Обновление и рисование девочки
     handleInput();
@@ -334,7 +340,30 @@ if (girlImg.complete) {
     // Мячи
     balls.forEach(ball => {
         ball.update();
-        ball.draw();
+        draw() {
+    const ballImg = new Image();
+    ballImg.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/refs/heads/raw/main/ball.png';
+    
+    if (ballImg.complete) {
+        // Подсветка золотым контуром остается поверх картинки
+        if (this.caught) {
+            ctx.beginPath();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = 'gold';
+            ctx.ellipse(this.x, this.y, this.size + 6, this.size + 6, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        
+        // Рисуем саму картинку мяча
+        ctx.drawImage(ballImg, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+    } else {
+        // Если картинка не загрузилась, рисуем старый коричневый мяч
+        ctx.beginPath();
+        ctx.fillStyle = '#8b4513';
+        ctx.ellipse(this.x, this.y, this.size, this.size, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
     });
 
     requestAnimationFrame(gameLoop);
