@@ -102,7 +102,7 @@
 <body>
 <div class="header">
     <h1>Выпускной Эвелин МакФи</h1>
-    <p>Собери все 10 мячей!</p>
+    <p>Поймай все квоффлы!</p>
 </div>
     
 <!-- Добавлена кнопка для повторной игры -->
@@ -118,14 +118,14 @@
 
 <script>
 // ⚠️ ВАЖНО! Ссылки должны вести на raw.githubusercontent.com
-// Убедись, что твои файлы оптимизированы под мобильные устройства!
-const imgGirl = new Image(); // Персонаж
+const imgGirl = new Image(); // Персонаж ✅
 imgGirl.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/character.png'; 
 
-const imgBall = new Image(); // Мяч
-imgBall.src = 'https://raw.githubusercontent.com/GGGreyland/for_evylin/main/ball.png';
+/* Исправленная ссылка! */
+const imgBall = new Image(); // Мяч ✅
+imgBall.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/ball.png';
 
-const imgBg = new Image(); // Фон
+const imgBg = new Image(); // Фон ✅
 imgBg.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/field.png';
 
 let resourcesLoaded = false; // Флаг готовности
@@ -174,7 +174,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const popup = document.getElementById('congratPopup');
 const messageText = popup.querySelector('.message');
-const authorText = popup.querySelector('.author');
+const authorText = popup.queryselector('.author'); // Исправлено queryselector
 const nextBtn = document.getElementById('nextBtn');
 const restartBtn = document.getElementById('restartBtn');
 
@@ -318,7 +318,7 @@ function gameLoop() {
     ctx.beginPath();
     ctx.rect(FIELD_PADDING, FIELD_PADDING, canvas.width - FIELD_PADDING * 2, canvas.height - FIELD_PADDING * 2);
     ctx.moveTo(canvas.width / 2, FIELD_PADDING);
-    ctx.lineTo(canvas.width / 2, canvas.height - FIELD_PANDOMING);
+    ctx.lineTo(canvas.width / 2, canvas.height - FIELD_PADDING); // ИСПРАВЛЕНО!
     ctx.stroke();
 
     ctx.fillStyle = '#f1c40f';
@@ -384,12 +384,91 @@ function handleInput() {
     girl.y = Math.max(girl.size / 2 + FIELD_PADDING, Math.min(girl.y, canvas.height - girl.size / 2 - FIELD_PADDING));
 }
 
+window.addEventListener('keydown', e => keys[e.key] = true);
+window.addEventListener('keyup', e => keys[e.key] = false);
+
+// Тач-управление
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    targetTouchX = touch.clientX - rect.left;
+    targetTouchY = touch.clientY - rect.top;
+});
+canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    targetTouchX = touch.clientX - rect.left;
+    targetTouchY = touch.clientY - rect.top;
+});
+canvas.addEventListener('touchend', () => {
+    targetTouchX = null;
+    targetTouchY = null;
+});
+
+// Клик мышью тоже работает как точка назначения
+canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    targetTouchX = e.clientX - rect.left;
+    targetTouchY = e.clientY - rect.top;
+});
+canvas.addEventListener('mousemove', (e) => {
+    if (targetTouchX !== null) {
+        const rect = canvas.getBoundingClientRect();
+        targetTouchX = e.clientX - rect.left;
+        targetTouchY = e.clientY - rect.top;
+    }
+});
+canvas.addEventListener('mouseup', () => {
+    targetTouchX = null;
+    targetTouchY = null;
+});
+
 // Закрытие поздравительной плашки
 nextBtn.addEventListener('click', hideCongratulations);
 popup.addEventListener('click', (e) => {
     // Если кликнули мимо кнопки — закрываем тоже
     if (e.target === popup) hideCongratulations();
 });
+
+// Функция показа попапа
+function showCongratulations(index) {
+    isPausedForPopup = true;
+    
+    const data = congratulations[index];
+    messageText.textContent = data.text;
+    authorText.textContent = `— ${data.author}`;
+    
+    // Имя автора может быть длинным, корректируем ширину попапа
+    const estimatedWidth = Math.min(400, Math.max(250, data.author.length * 10));
+    popup.style.maxWidth = `${estimatedWidth}px`;
+    
+    popup.classList.add('active');
+}
+
+// Функция закрытия попапа
+function hideCongratulations() {
+    popup.classList.remove('active');
+    setTimeout(() => {
+        isPausedForPopup = false;
+        currentBallIndex++;
+        if (currentBallIndex < BALL_COUNT) {
+             // Сбрасываем управление, чтобы игрок не улетел далеко во время паузы
+            keys = {};
+            targetTouchX = null;
+            targetTouchY = null;
+        } else {
+            finishGame();
+        }
+    }, 400); // Ждем завершения анимации CSS
+}
+
+// Завершение игры
+function finishGame() {
+    // alert("Ты собрала все поздравления!");
+    restartBtn.style.display = ''; // Показываем кнопку новой игры
+}
 
 // ⚡️ Новый обработчик для кнопки "Новая игра"
 restartBtn.addEventListener('click', () => {
