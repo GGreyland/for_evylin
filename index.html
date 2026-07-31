@@ -62,6 +62,12 @@
             margin-bottom: 15px; 
             line-height: 1.4;
         }
+        #congratPopup p.author { 
+            font-weight: bold; 
+            color: #d35400; /* Оранжевый цвет для имени отправителя */
+            font-style: italic; 
+            font-size: 16px;
+        }
         #nextBtn {
             margin-top: 20px;
             padding: 10px 25px;
@@ -75,7 +81,7 @@
         }
         #nextBtn:hover { background-color: #2ecc71; }
 
-        /* Добавил стиль для кнопки "Повторить игру" */
+        /* Добавил стиль для кнопки "Новая игра" */
         #restartBtn {
             position: fixed;
             bottom: 20px;
@@ -96,7 +102,7 @@
 <body>
 <div class="header">
     <h1>Выпускной Эвелин МакФи</h1>
-    <p>Поймай все квоффлы!</p>
+    <p>Собери все 10 мячей!</p>
 </div>
     
 <!-- Добавлена кнопка для повторной игры -->
@@ -111,22 +117,41 @@
 </div>
 
 <script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const popup = document.getElementById('congratPopup');
-const messageText = popup.querySelector('.message');
-const authorText = popup.querySelector('.author');
-const nextBtn = document.getEventById('nextBtn'); // Исправлено на getElementById
-const restartBtn = document.getElementById('restartBtn'); // Новая переменная
+// ⚠️ ВАЖНО! Ссылки должны вести на raw.githubusercontent.com
+// Убедись, что твои файлы оптимизированы под мобильные устройства!
+const imgGirl = new Image(); // Персонаж
+imgGirl.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/character.png'; 
+
+const imgBall = new Image(); // Мяч
+imgBall.src = 'https://raw.githubusercontent.com/GGGreyland/for_evylin/main/ball.png';
+
+const imgBg = new Image(); // Фон
+imgBg.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/field.png';
+
+let resourcesLoaded = false; // Флаг готовности
+
+// Ждём, пока загрузятся ВСЕ ресурсы
+Promise.all([
+    loadImage(imgGirl),
+    loadImage(imgBall),
+    loadImage(imgBg)
+]).then(() => {
+    console.log('Все ресурсы загружены!');
+    resourcesLoaded = true;
+    initGame();
+});
+
+function loadImage(image) {
+    return new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = () => reject(new Error(`Не удалось загрузить ${image.src}`));
+    });
+}
 
 // --- Данные ---
 const congratulations = [
     {text: "Текст поздравления", author: "Грэйс"},
     {text: "Текст поздравления", author: "Энни"},
-    {text: "Текст поздравления", author: "Поздравитель"},
-    {text: "Текст поздравления", author: "Поздравитель"},
-    {text: "Текст поздравления", author: "Поздравитель"},
-    {text: "Текст поздравления", author: "Поздравитель"},
 ];
 
 // --- Объекты игры ---
@@ -144,15 +169,14 @@ let targetTouchY = null;
 const BALL_COUNT = 10;
 const FIELD_PADDING = 50;
 
-/* ВАЖНО! Ссылки должны вести на raw.githubusercontent.com */
-const imgGirl = new Image();
-imgGirl.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/character.png'; 
-
-const imgBall = new Image();
-imgBall.src = 'https://raw.githubusercontent.com/GGGreyland/for_evylin/main/ball.png';
-
-const imgBg = new Image();
-imgBg.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/field.png';
+// Получение элементов ДО запуска игры
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const popup = document.getElementById('congratPopup');
+const messageText = popup.querySelector('.message');
+const authorText = popup.querySelector('.author');
+const nextBtn = document.getElementById('nextBtn');
+const restartBtn = document.getElementById('restartBtn');
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -191,6 +215,191 @@ class Ball {
         this.size = 25;
         this.caught = false;
 
-        // *** ИСПРАВЛЕНО ***
-        // Задаем вектор движения К ЦЕНТРУ без лишних знаков
-        const angleToCenter = Math.
+        // Летит по прямой с небольшим отклонением
+        const angleToCenter = Math.atan2(canvas.height / 2 - this.y, canvas.width / 2 - this.x);
+        const randomAngle = angleToCenter + (Math.random() - 0.5) * 0.3; // +/- ~17 градусов
+
+        this.speed = 0.8 + Math.random() * 1; // Средняя скорость от 0.8 до 1.8 пикселя в кадр
+        this.vx = Math.cos(randomAngle) * this.speed;
+        this.vy = Math.sin(randomAngle) * this.speed;
+    }
+
+    update() {
+        if (!resourcesLoaded || this.caught) return; // Не двигаем мяч, если ресурсы ещё грузятся
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Отскок от стенок игрового поля
+        if (this.x <= FIELD_PADDING || this.x >= canvas.width - FIELD_PADDING) {
+            this.vx *= -1;
+            this.x = Math.max(FIELD_PADDING, Math.min(this.x, canvas.width - FIELD_PADDING));
+        }
+        if (this.y <= FIELD_PADDING || this.y >= canvas.height - FIELD_PADDING) {
+            this.vy *= -1;
+            this.y = Math.max(FIELD_PADDING, Math.min(this.y, canvas.height - FIELD_PADDING));
+        }
+
+        // Проверяем только тот мяч, который сейчас летит
+        if (currentBallIndex !== this.index) return;
+
+        const dx = girl.x - this.x;
+        const dy = girl.y - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Увеличенная зона ловли (персонаж стал больше)
+        if (distance < girl.size / 2 + this.size / 2) {
+            this.caught = true;
+            showCongratulations(this.index);
+        }
+    }
+
+    draw() {
+        if (this.caught && !isPausedForPopup) return; // Не рисуем пойманные мячи во время игры
+        if (!this.caught && isPausedForPopup) return; // Не рисуем активные мячи во время паузы
+
+        // Подсветка золотым контуром остается поверх картинки
+        if (this.caught) {
+            ctx.beginPath();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = 'gold';
+            ctx.ellipse(this.x, this.y, this.size + 6, this.size + 6, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // Рисуем картинку мяча
+        if (imgBall.complete) {
+            ctx.drawImage(
+                imgBall,
+                this.x - this.size / 2, // Левая верхняя точка
+                this.y - this.size / 2,
+                this.size,              // Ширина
+                this.size               // Высота
+            );
+        } else {
+            ctx.fillStyle = '#8b4513';
+            ctx.ellipse(this.x, this.y, this.size, this.size, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+}
+
+function initGame() {
+    resizeCanvas();
+    balls = [];
+    for(let i = 0; i < BALL_COUNT; i++) {
+        balls.push(new Ball(i));
+    }
+    currentBallIndex = 0;
+    isPausedForPopup = false;
+    restartBtn.style.display = 'none'; // Прячем кнопку после старта
+}
+
+function gameLoop() {
+    if (!resourcesLoaded) return; // Если ресурсы не загрузились, цикл рендеринга пропускает ход
+    if (isPausedForPopup) {
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Фон
+    if (imgBg.complete) {
+        ctx.drawImage(imgBg, 0, 0, canvas.width, canvas.height);
+    } else {
+        ctx.fillStyle = '#2d5a27'; /* Трава */
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Разметка полей для квиддича (ворота)
+    ctx.strokeStyle = '#ffffff40';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.rect(FIELD_PADDING, FIELD_PADDING, canvas.width - FIELD_PADDING * 2, canvas.height - FIELD_PADDING * 2);
+    ctx.moveTo(canvas.width / 2, FIELD_PADDING);
+    ctx.lineTo(canvas.width / 2, canvas.height - FIELD_PANDOMING);
+    ctx.stroke();
+
+    ctx.fillStyle = '#f1c40f';
+    ctx.beginPath();
+    ctx.ellipse(canvas.width / 2, FIELD_PADDING + 50, 40, 15, 0, 0, Math.PI * 2);
+    ctx.fill();
+    [canvas.height / 3, canvas.height / 3 * 2].forEach(yPos => {
+        ctx.beginPath();
+        ctx.ellipse(FIELD_PADDING + 50, yPos, 15, 40, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(canvas.width - FIELD_PADDING - 50, yPos, 15, 40, 0, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    handleInput();
+
+    // Девочка 👧
+    if (imgGirl.complete) {
+        ctx.drawImage(
+            imgGirl,
+            girl.x - girl.size / 2, // Левая верхняя точка персонажа
+            girl.y - girl.size / 2,
+            girl.size,
+            girl.size
+        );
+    } else {
+        ctx.fillStyle = '#ff6600';
+        ctx.beginPath();
+        ctx.arc(girl.x, girl.y, girl.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Мячи ⚽
+    balls.forEach(ball => {
+        ball.update();
+        ball.draw();
+    });
+
+    requestAnimationFrame(gameLoop);
+}
+
+// Обработка ввода
+function handleInput() {
+    let moveSpeed = 5;
+    
+    // Смартфон: тянем пальцем
+    if (targetTouchX !== null && targetTouchY !== null) {
+        const angle = Math.atan2(targetTouchY - girl.y, targetTouchX - girl.x);
+        girl.x += Math.cos(angle) * moveSpeed;
+        girl.y += Math.sin(angle) * moveSpeed;
+    } 
+    // ПК: стрелки
+    else {
+        if (keys['ArrowUp']) girl.y -= moveSpeed;
+        if (keys['ArrowDown']) girl.y += moveSpeed;
+        if (keys['ArrowLeft']) girl.x -= moveSpeed;
+        if (keys['ArrowRight']) girl.x += moveSpeed;
+    }
+
+    // Ограничиваем передвижение рамками поля
+    girl.x = Math.max(girl.size / 2 + FIELD_PADDING, Math.min(girl.x, canvas.width - girl.size / 2 - FIELD_PADDING));
+    girl.y = Math.max(girl.size / 2 + FIELD_PADDING, Math.min(girl.y, canvas.height - girl.size / 2 - FIELD_PADDING));
+}
+
+// Закрытие поздравительной плашки
+nextBtn.addEventListener('click', hideCongratulations);
+popup.addEventListener('click', (e) => {
+    // Если кликнули мимо кнопки — закрываем тоже
+    if (e.target === popup) hideCongratulations();
+});
+
+// ⚡️ Новый обработчик для кнопки "Новая игра"
+restartBtn.addEventListener('click', () => {
+    initGame();
+});
+
+window.addEventListener('resize', resizeCanvas);
+
+initGame(); // Эта функция теперь вызывается асинхронно, см. выше
+</script>
+
+</body>
+</html>
