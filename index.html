@@ -83,18 +83,18 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Выпускной Эвелин МакФи</h1>
-        <p>Собери все 10 мячей!</p>
-    </div>
+<div class="header">
+    <h1>Выпускной Эвелин МакФи</h1>
+    <p>Собери все 10 мячей!</p>
+</div>
     
-    <canvas id="gameCanvas"></canvas>
+<canvas id="gameCanvas"></canvas>
 
-    <div id="congratPopup">
-        <p class="message">Здесь будет текст поздравления</p>
-        <p class="author">— Грэйс</p>
-        <button id="nextBtn">Дальше</button>
-    </div>
+<div id="congratPopup">
+    <p class="message">Здесь будет текст поздравления</p>
+    <p class="author">— Грэйс</p>
+    <button id="nextBtn">Дальше</button>
+</div>
 
 <script>
 const canvas = document.getElementById('gameCanvas');
@@ -110,13 +110,7 @@ const congratulations = [
     {text: "Текст поздравления", author: "Грэйс"},
     {text: "Текст поздравления", author: "Энни"},
     {text: "Текст поздравления", author: "Имя поздравителя"},
-    {text: "Текст поздравления", author: "Имя поздравителя"},
-    {text: "Текст поздравления", author: "Имя поздравителя"},
-    {text: "Текст поздравления", author: "Имя поздравителя"},
-    {text: "Текст поздравления", author: "Имя поздравителя"},
-    {text: "Текст поздравления", author: "Имя поздравителя"},
-    {text: "Текст поздравления", author: "Имя поздравителя"},
-    {text: "Текст поздравления", author: "Имя поздравителя"}
+    // Добавьте еще 7 таких строк!
 ];
 
 // --- Объекты игры ---
@@ -134,11 +128,20 @@ let targetTouchY = null;
 const BALL_COUNT = 10;
 const FIELD_PADDING = 50; // Чтобы мячи не улетали за интерфейс
 
+/* ⚠️ ВАЖНО! Вставьте сюда СВОИ прямые ссылки на raw.githubusercontent.com */
+const imgGirl = new Image();
+imgGirl.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/character.png';
+
+const imgBall = new Image();
+imgBall.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/ball.png';
+
+const imgBg = new Image();
+imgBg.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/field.png';
+
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     
-    // Ставим девочку в центр экрана при старте/ресайзе
     if (!isPausedForPopup || currentBallIndex === 0) {
          girl.x = canvas.width / 2;
          girl.y = canvas.height / 2;
@@ -152,7 +155,6 @@ class Ball {
     }
     
     reset() {
-        // Появляемся у края поля в случайном месте
         const edges = ['top', 'right', 'bottom', 'left'];
         const edge = edges[Math.floor(Math.random() * edges.length)];
         
@@ -178,13 +180,12 @@ class Ball {
         this.size = 25;
         this.caught = false;
         
-        // Задаем вектор движения к центру, но со случайным отклонением
         const angleToCenter = Math.atan2(canvas.height / 2 - this.y, canvas.width / 2 - this.x);
         const randomAngle = angleToCenter + (Math.random() - 0.5) * 1.5; // +/- ~43 градуса
         
         this.speed = 2 + Math.random() * 1.5; // Средняя скорость от 2 до 3.5
         this.vx = Math.cos(randomAngle) * this.speed;
-        this.vy = Math.sin(randomAngle) * this.speed;
+        this.vy = Math.sin(randomAngle) * Math.sign(angleToCenter) * this.speed;
     }
     
     update() {
@@ -196,7 +197,6 @@ class Ball {
         // Отскок от стенок игрового поля
         if (this.x <= FIELD_PADDING || this.x >= canvas.width - FIELD_PADDING) {
             this.vx *= -1;
-            // Корректируем позицию, чтобы мяч не застрял в стене
             this.x = Math.max(FIELD_PADDING, Math.min(this.x, canvas.width - FIELD_PADDING));
         }
         if (this.y <= FIELD_PADDING || this.y >= canvas.height - FIELD_PADDING) {
@@ -204,7 +204,9 @@ class Ball {
             this.y = Math.max(FIELD_PADDING, Math.min(this.y, canvas.height - FIELD_PADDING));
         }
         
-        // Проверка на сбор девочкой
+        // Проверка на сбор девочкой ТОЛЬКО ДЛЯ ТОГО МЯЧА, ЧТО ЛЕТИТ
+        if (currentBallIndex !== this.index) return;
+
         const dx = girl.x - this.x;
         const dy = girl.y - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -216,12 +218,7 @@ class Ball {
     }
     
     draw() {
-        ctx.beginPath();
-        ctx.fillStyle = '#8b4513'; // Коричневый цвет кожи/дуба (SaddleBrown)
-        ctx.ellipse(this.x, this.y, this.size, this.size, 0, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Подсветка, если пойман
+        // Подсветка золотым контуром остается поверх картинки
         if (this.caught) {
             ctx.beginPath();
             ctx.lineWidth = 4;
@@ -229,6 +226,9 @@ class Ball {
             ctx.ellipse(this.x, this.y, this.size + 6, this.size + 6, 0, 0, Math.PI * 2);
             ctx.stroke();
         }
+        
+        // Рисуем саму картинку мяча
+        ctx.drawImage(imgBall, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
     }
 }
 
@@ -244,7 +244,6 @@ function initGame() {
 
 function showCongratulations(index) {
     isPausedForPopup = true;
-    // Останавливаем текущий мяч визуально (он уже помечен как caught)
     
     const data = congratulations[index];
     messageText.textContent = data.text;
@@ -286,30 +285,16 @@ function gameLoop() {
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    function gameLoop() {
-    if (isPausedForPopup) {
-        requestAnimationFrame(gameLoop);
-        return;
-    }
 
     // Фон
-    const bgImg = new Image();
-    bgImg.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/refs/heads/raw/main/field.png';
-    
-    if (bgImg.complete) {
-        // Растягиваем фон на всё поле
-        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+    if (imgBg.complete) {
+        ctx.drawImage(imgBg, 0, 0, canvas.width, canvas.height);
     } else {
-        // Старая заливка цветом пока грузится картинка
         ctx.fillStyle = '#2d5a27'; /* Трава */
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // Далее идет ваш существующий код разметки поля...
-    ctx.strokeStyle = '#ffffff40';
-    ...
-
-    // Рисуем разметку поля для квиддича (простые линии)
+    // Разметка полей для квиддича (ворота)
     ctx.strokeStyle = '#ffffff40';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -318,52 +303,35 @@ function gameLoop() {
     ctx.lineTo(canvas.width / 2, canvas.height - FIELD_PADDING);
     ctx.stroke();
 
-    // Обновление и рисование девочки
-    handleInput();
-    
-   // --- Рисуем девочку-картинку ---
-const girlImg = new Image();
-girlImg.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/refs/heads/raw/main/character.png'; // Например: 'https://.../raw/main/devochka.png'
-
-// Чтобы картинка успела загрузиться до первого кадра, лучше инициализировать её вне цикла один раз,
-// но для простоты можно оставить и так (браузер закэширует её):
-if (girlImg.complete) {
-    ctx.drawImage(girlImg, girl.x - girl.size / 2, girl.y - girl.size / 2, girl.size, girl.size);
-} else {
-    // Резервный вариант на случай долгой загрузки: цветной круг
-    ctx.fillStyle = '#ff6600';
+    ctx.fillStyle = '#f1c40f';
     ctx.beginPath();
-    ctx.arc(girl.x, girl.y, girl.size / 2, 0, Math.PI * 2);
+    ctx.ellipse(canvas.width / 2, FIELD_PADDING + 50, 40, 15, 0, 0, Math.PI * 2);
     ctx.fill();
-}
-
-    // Мячи
-    balls.forEach(ball => {
-        ball.update();
-        draw() {
-    const ballImg = new Image();
-    ballImg.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/refs/heads/raw/main/ball.png';
-    
-    if (ballImg.complete) {
-        // Подсветка золотым контуром остается поверх картинки
-        if (this.caught) {
-            ctx.beginPath();
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = 'gold';
-            ctx.ellipse(this.x, this.y, this.size + 6, this.size + 6, 0, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-        
-        // Рисуем саму картинку мяча
-        ctx.drawImage(ballImg, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
-    } else {
-        // Если картинка не загрузилась, рисуем старый коричневый мяч
+    [canvas.height / 3, canvas.height / 3 * 2].forEach(yPos => {
         ctx.beginPath();
-        ctx.fillStyle = '#8b4513';
-        ctx.ellipse(this.x, this.y, this.size, this.size, 0, 0, Math.PI * 2);
+        ctx.ellipse(FIELD_PADDING + 50, yPos, 15, 40, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(canvas.width - FIELD_PADDING - 50, yPos, 15, 40, 0, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    handleInput();
+
+    // Девочка 👧
+    if (imgGirl.complete) {
+        ctx.drawImage(imgGirl, girl.x - girl.size / 2, girl.y - girl.size / 2, girl.size, girl.size);
+    } else {
+        ctx.fillStyle = '#ff6600';
+        ctx.beginPath();
+        ctx.arc(girl.x, girl.y, girl.size / 2, 0, Math.PI * 2);
         ctx.fill();
     }
-}
+
+    // Мячи ⚽
+    balls.forEach(ball => {
+        ball.update();
+        ball.draw();
     });
 
     requestAnimationFrame(gameLoop);
