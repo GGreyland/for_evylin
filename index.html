@@ -315,43 +315,21 @@ function gameLoop() {
     // Обновление и рисование девочки
     handleInput();
     
-    // Рисуем рыжую девочку (круг с волосами-солнцем)
-    ctx.save();
-    ctx.translate(girl.x, girl.y);
-    
-    // Волосы (оранжевые лучи)
+   // --- Рисуем девочку-картинку ---
+const girlImg = new Image();
+girlImg.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/refs/heads/raw/main/character.png'; // Например: 'https://.../raw/main/devochka.png'
+
+// Чтобы картинка успела загрузиться до первого кадра, лучше инициализировать её вне цикла один раз,
+// но для простоты можно оставить и так (браузер закэширует её):
+if (girlImg.complete) {
+    ctx.drawImage(girlImg, girl.x - girl.size / 2, girl.y - girl.size / 2, girl.size, girl.size);
+} else {
+    // Резервный вариант на случай долгой загрузки: цветной круг
     ctx.fillStyle = '#ff6600';
-    for(let i = 0; i < 12; i++) {
-        ctx.rotate(Math.PI / 6);
-        ctx.beginPath();
-        ctx.moveTo(0, -girl.size/2);
-        ctx.lineTo(10, -girl.size/2 - 20);
-        ctx.lineTo(0, -girl.size/2 - 15);
-        ctx.closePath();
-        ctx.fill();
-    }
-    
-    // Голова
-    ctx.fillStyle = '#ffe0bd'; // Телесный
     ctx.beginPath();
-    ctx.arc(0, 0, girl.size / 2, 0, Math.PI * 2);
+    ctx.arc(girl.x, girl.y, girl.size / 2, 0, Math.PI * 2);
     ctx.fill();
-    
-    // Глаза
-    ctx.fillStyle = '#000000';
-    ctx.beginPath();
-    ctx.arc(-10, -5, 3, 0, Math.PI * 2);
-    ctx.arc(10, -5, 3, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Улыбка
-    ctx.beginPath();
-    ctx.arc(0, 10, 12, 0, Math.PI);
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#000000';
-    ctx.stroke();
-    
-    ctx.restore();
+}
 
     // Мячи
     balls.forEach(ball => {
