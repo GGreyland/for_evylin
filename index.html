@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Выпускной Эвелин МакФи</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background-color: #2d5a27; /* Трава */
+            font-family: Arial, sans-serif;
+            touch-action: none; /* Отключаем стандартные скроллы при свайпе на смартфоне */
+        }
+        
+        .header {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            text-align: center;
+            z-index: 10;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 5px 0 0; font-size: 16px; opacity: 0.9; }
+
+        #gameCanvas {
+            display: block;
+            background-image: linear-gradient(#8ecae6 0%, #219ebc 100%); /* Небо квиддича */
+        }
+
+        /* Плашка поздравления */
+        #congratPopup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            color: #333;
+            max-width: 90%;
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        #congratPopup.active {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #congratPopup p.message { 
+            font-size: 18px; 
+            margin-bottom: 15px; 
+            line-height: 1.4;
+        }
+        #congratPopup p.author { 
+            font-weight: bold; 
+            color: #d35400; /* Оранжевый цвет для имени отправителя */
+            font-style: italic; 
+            font-size: 16px;
+        }
+        #nextBtn {
+            margin-top: 20px;
+            padding: 10px 25px;
+            font-size: 16px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #nextBtn:hover { background-color: #2ecc71; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Выпускной Эвелин МакФи</h1>
+        <p>Собери все 10 мячей!</p>
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="congratPopup">
+        <p class="message">Здесь будет текст поздравления</p>
+        <p class="author">— Грэйс</p>
+        <button id="nextBtn">Дальше</button>
+    </div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const popup = document.getElementById('congratPopup');
+const messageText = popup.querySelector('.message');
+const authorText = popup.querySelector('.author');
+const nextBtn = document.getElementById('nextBtn');
+
+// --- Данные ---
+// Сюда вставьте ваши настоящие тексты вместо "Текст поздравления"
+const congratulations = [
+    {text: "Текст поздравления", author: "Грэйс"},
+    {text: "Текст поздравления", author: "Энни"},
+    {text: "Текст поздравления", author: "Кто-то ещё"},
+    {text: "Текст поздравления", author: "Кто-то ещё"},
+    {text: "Текст поздравления", author: "Кто-то ещё"},
+    {text: "Текст поздравления", author: "Кто-то ещё"},
+    {text: "Текст поздравления", author: "Кто-то ещё"},
+    {text: "Текст поздравления", author: "Кто-то ещё"},
+    {text: "Текст поздравления", author: "Кто-то ещё"},
+    {text: "Текст поздравления", author: "Кто-то ещё"}
+];
+
+// --- Объекты игры ---
+let girl = { x: 0, y: 0, size: 40 };
+let balls = [];
+let currentBallIndex = 0;
+let isPausedForPopup = false;
+
+// --- Управление ---
+let keys = {};
+let targetTouchX = null;
+let targetTouchY = null;
+
+// --- Настройки ---
+const BALL_COUNT = 10;
+const FIELD_PADDING = 50; // Чтобы мячи не улетали за интерфейс
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // Ставим девочку в центр экрана при старте/ресайзе
+    if (!isPausedForPopup || currentBallIndex === 0) {
+         girl.x = canvas.width / 2;
+         girl.y = canvas.height / 2;
+    }
+}
+
+class Ball {
+    constructor(index) {
+        this.index = index;
+        this.reset();
+    }
+    
+    reset() {
+        // Появляемся у края поля в случайном месте
+        const edges = ['top', 'right', 'bottom', 'left'];
+        const edge = edges[Math.floor(Math.random() * edges.length)];
+        
+        switch(edge) {
+            case 'top':
+                this.x = Math.random() * (canvas.width - FIELD_PADDING * 2) + FIELD_PADDING;
+                this.y = -30;
+                break;
+            case 'right':
+                this.x = canvas.width + 30;
+                this.y = Math.random() * (canvas.height - FIELD_PADDING * 2) + FIELD_PADDING;
+                break;
+            case 'bottom':
+                this.x = Math.random() * (canvas.width - FIELD_PADDING * 2) + FIELD_PADDING;
+                this.y = canvas.height + 30;
+                break;
+            case 'left':
+                this.x = -30;
+                this.y = Math.random() * (canvas.height - FIELD_PADDING * 2) + FIELD_PADDING;
+                break;
+        }
+        
+        this.size = 25;
+        this.caught = false;
+        
+        // Задаем вектор движения к центру, но со случайным отклонением
+        const angleToCenter = Math.atan2(canvas.height / 2 - this.y, canvas.width / 2 - this.x);
+        const randomAngle = angleToCenter + (Math.random() - 0.5) * 1.5; // +/- ~43 градуса
+        
+        this.speed = 2 + Math.random() * 1.5; // Средняя скорость от 2 до 3.5
+        this.vx = Math.cos(randomAngle) * this.speed;
+        this.vy = Math.sin(randomAngle) * this.speed;
+    }
+    
+    update() {
+        if (this.caught) return;
+        
+        this.x += this.vx;
+        this.y += this.vy;
+        
+        // Отскок от стенок игрового поля
+        if (this.x <= FIELD_PADDING || this.x >= canvas.width - FIELD_PADDING) {
+            this.vx *= -1;
+            // Корректируем позицию, чтобы мяч не застрял в стене
+            this.x = Math.max(FIELD_PADDING, Math.min(this.x, canvas.width - FIELD_PADDING));
+        }
+        if (this.y <= FIELD_PADDING || this.y >= canvas.height - FIELD_PADDING) {
+            this.vy *= -1;
+            this.y = Math.max(FIELD_PADDING, Math.min(this.y, canvas.height - FIELD_PADDING));
+        }
+        
+        // Проверка на сбор девочкой
+        const dx = girl.x - this.x;
+        const dy = girl.y - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < girl.size / 2 + this.size / 2) {
+            this.caught = true;
+            showCongratulations(this.index);
+        }
+    }
+    
+    draw() {
+        ctx.beginPath();
+        ctx.fillStyle = '#8b4513'; // Коричневый цвет кожи/дуба (SaddleBrown)
+        ctx.ellipse(this.x, this.y, this.size, this.size, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Подсветка, если пойман
+        if (this.caught) {
+            ctx.beginPath();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = 'gold';
+            ctx.ellipse(this.x, this.y, this.size + 6, this.size + 6, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+}
+
+function initGame() {
+    resizeCanvas();
+    balls = [];
+    for(let i = 0; i < BALL_COUNT; i++) {
+        balls.push(new Ball(i));
+    }
+    currentBallIndex = 0;
+    isPausedForPopup = false;
+}
+
+function showCongratulations(index) {
+    isPausedForPopup = true;
+    // Останавливаем текущий мяч визуально (он уже помечен как caught)
+    
+    const data = congratulations[index];
+    messageText.textContent = data.text;
+    authorText.textContent = `— ${data.author}`;
+    
+    // Имя автора может быть длинным, корректируем ширину попапа
+    const estimatedWidth = Math.min(400, Math.max(250, data.author.length * 10));
+    popup.style.maxWidth = `${estimatedWidth}px`;
+    
+    popup.classList.add('active');
+}
+
+function hideCongratulations() {
+    popup.classList.remove('active');
+    setTimeout(() => {
+        isPausedForPopup = false;
+        currentBallIndex++;
+        if (currentBallIndex < BALL_COUNT) {
+             // Сбрасываем управление, чтобы игрок не улетел далеко во время паузы
+            keys = {};
+            targetTouchX = null;
+            targetTouchY = null;
+        } else {
+            finishGame();
+        }
+    }, 400); // Ждем завершения анимации CSS
+}
+
+function finishGame() {
+    alert("Ты собрала все поздравления! Поздравляем!");
+    initGame(); // Перезапуск цикла
+}
+
+// --- Игровой цикл ---
+function gameLoop() {
+    if (isPausedForPopup) {
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Рисуем разметку поля для квиддича (простые линии)
+    ctx.strokeStyle = '#ffffff40';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.rect(FIELD_PADDING, FIELD_PADDING, canvas.width - FIELD_PADDING * 2, canvas.height - FIELD_PADDING * 2);
+    ctx.moveTo(canvas.width / 2, FIELD_PADDING);
+    ctx.lineTo(canvas.width / 2, canvas.height - FIELD_PADDING);
+    ctx.stroke();
+    
+    // Три кольца (ворота) - золотистые эллипсы
+    ctx.fillStyle = '#f1c40f';
+    // Верхнее кольцо
+    ctx.beginPath();
+    ctx.ellipse(canvas.width / 2, FIELD_PADDING + 50, 40, 15, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Нижние кольца
+    [canvas.height / 3, canvas.height / 3 * 2].forEach(yPos => {
+        ctx.beginPath();
+        ctx.ellipse(FIELD_PADDING + 50, yPos, 15, 40, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(canvas.width - FIELD_PADDING - 50, yPos, 15, 40, 0, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // Обновление и рисование девочки
+    handleInput();
+    
+    // Рисуем рыжую девочку (круг с волосами-солнцем)
+    ctx.save();
+    ctx.translate(girl.x, girl.y);
+    
+    // Волосы (оранжевые лучи)
+    ctx.fillStyle = '#ff6600';
+    for(let i = 0; i < 12; i++) {
+        ctx.rotate(Math.PI / 6);
+        ctx.beginPath();
+        ctx.moveTo(0, -girl.size/2);
+        ctx.lineTo(10, -girl.size/2 - 20);
+        ctx.lineTo(0, -girl.size/2 - 15);
+        ctx.closePath();
+        ctx.fill();
+    }
+    
+    // Голова
+    ctx.fillStyle = '#ffe0bd'; // Телесный
+    ctx.beginPath();
+    ctx.arc(0, 0, girl.size / 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Глаза
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(-10, -5, 3, 0, Math.PI * 2);
+    ctx.arc(10, -5, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Улыбка
+    ctx.beginPath();
+    ctx.arc(0, 10, 12, 0, Math.PI);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#000000';
+    ctx.stroke();
+    
+    ctx.restore();
+
+    // Мячи
+    balls.forEach(ball => {
+        ball.update();
+        ball.draw();
+    });
+
+    requestAnimationFrame(gameLoop);
+}
+
+// --- Управление ---
+function handleInput() {
+    let moveSpeed = 5;
+    
+    // Смартфон: тянем пальцем
+    if (targetTouchX !== null && targetTouchY !== null) {
+        const angle = Math.atan2(targetTouchY - girl.y, targetTouchX - girl.x);
+        girl.x += Math.cos(angle) * moveSpeed;
+        girl.y += Math.sin(angle) * moveSpeed;
+    } 
+    // ПК: стрелки
+    else {
+        if (keys['ArrowUp']) girl.y -= moveSpeed;
+        if (keys['ArrowDown']) girl.y += moveSpeed;
+        if (keys['ArrowLeft']) girl.x -= moveSpeed;
+        if (keys['ArrowRight']) girl.x += moveSpeed;
+    }
+
+    // Ограничиваем передвижение рамками поля
+    girl.x = Math.max(girl.size / 2 + FIELD_PADDING, Math.min(girl.x, canvas.width - girl.size / 2 - FIELD_PADDING));
+    girl.y = Math.max(girl.size / 2 + FIELD_PADDING, Math.min(girl.y, canvas.height - girl.size / 2 - FIELD_PADDING));
+}
+
+window.addEventListener('keydown', e => keys[e.key] = true);
+window.addEventListener('keyup', e => keys[e.key] = false);
+
+// Тач-управление
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    targetTouchX = touch.clientX - rect.left;
+    targetTouchY = touch.clientY - rect.top;
+});
+canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    targetTouchX = touch.clientX - rect.left;
+    targetTouchY = touch.clientY - rect.top;
+});
+canvas.addEventListener('touchend', () => {
+    targetTouchX = null;
+    targetTouchY = null;
+});
+
+// Клик мышью тоже работает как точка назначения
+canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    targetTouchX = e.clientX - rect.left;
+    targetTouchY = e.clientY - rect.top;
+});
+canvas.addEventListener('mousemove', (e) => {
+    if (targetTouchX !== null) {
+        const rect = canvas.getBoundingClientRect();
+        targetTouchX = e.clientX - rect.left;
+        targetTouchY = e.clientY - rect.top;
+    }
+});
+canvas.addEventListener('mouseup', () => {
+    targetTouchX = null;
+    targetTouchY = null;
+});
+
+// Закрытие плашки
+nextBtn.addEventListener('click', hideCongratulations);
+popup.addEventListener('click', (e) => {
+    // Если кликнули мимо кнопки — закрываем тоже
+    if (e.target === popup) hideCongratulations();
+});
+
+window.addEventListener('resize', resizeCanvas);
+
+initGame();
+gameLoop();
+</script>
+
+</body>
+</html>
