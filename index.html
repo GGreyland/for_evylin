@@ -114,7 +114,7 @@ const congratulations = [
 ];
 
 // --- Объекты игры ---
-let girl = { x: 0, y: 0, size: 40 };
+let girl = { x: 0, y: 0, size: 70 };
 let balls = [];
 let currentBallIndex = 0;
 let isPausedForPopup = false;
@@ -155,38 +155,41 @@ class Ball {
     }
     
     reset() {
-        const edges = ['top', 'right', 'bottom', 'left'];
-        const edge = edges[Math.floor(Math.random() * edges.length)];
-        
-        switch(edge) {
-            case 'top':
-                this.x = Math.random() * (canvas.width - FIELD_PADDING * 2) + FIELD_PADDING;
-                this.y = -30;
-                break;
-            case 'right':
-                this.x = canvas.width + 30;
-                this.y = Math.random() * (canvas.height - FIELD_PADDING * 2) + FIELD_PADDING;
-                break;
-            case 'bottom':
-                this.x = Math.random() * (canvas.width - FIELD_PADDING * 2) + FIELD_PADDING;
-                this.y = canvas.height + 30;
-                break;
-            case 'left':
-                this.x = -30;
-                this.y = Math.random() * (canvas.height - FIELD_PADDING * 2) + FIELD_PADDING;
-                break;
-        }
-        
-        this.size = 25;
-        this.caught = false;
-        
-        const angleToCenter = Math.atan2(canvas.height / 2 - this.y, canvas.width / 2 - this.x);
-        const randomAngle = angleToCenter + (Math.random() - 0.5) * 1.5; // +/- ~43 градуса
-        
-        this.speed = 2 + Math.random() * 1.5; // Средняя скорость от 2 до 3.5
-        this.vx = Math.cos(randomAngle) * this.speed;
-        this.vy = Math.sin(randomAngle) * Math.sign(angleToCenter) * this.speed;
+    const edges = ['top', 'right', 'bottom', 'left'];
+    const edge = edges[Math.floor(Math.random() * edges.length)];
+    
+    switch(edge) {
+        case 'top':
+            this.x = Math.random() * (canvas.width - FIELD_PADDING * 2) + FIELD_PADDING;
+            this.y = -30;
+            break;
+        case 'right':
+            this.x = canvas.width + 30;
+            this.y = Math.random() * (canvas.height - FIELD_PADDING * 2) + FIELD_PADDING;
+            break;
+        case 'bottom':
+            this.x = Math.random() * (canvas.width - FIELD_PADDING * 2) + FIELD_PADDING;
+            this.y = canvas.height + 30;
+            break;
+        case 'left':
+            this.x = -30;
+            this.y = Math.random() * (canvas.height - FIELD_PADDING * 2) + FIELD_PADDING;
+            break;
     }
+    
+    this.size = 25;
+    this.caught = false;
+    
+    // Задаем вектор движения к центру, но со случайным отклонением
+    const angleToCenter = Math.atan2(canvas.height / 2 - this.y, canvas.width / 2 - this.x);
+    // *** Вот здесь я уменьшил угол ***
+    const randomAngle = angleToCenter + (Math.random() - 0.5) * 0.3; 
+    
+    // *** И вот здесь снизил скорость ***
+    this.speed = 0.8 + Math.random() * 1; // Средняя скорость от 0.8 до 1.8
+    this.vx = Math.cos(randomAngle) * this.speed;
+    this.vy = Math.sin(randomAngle) * this.sign(angleToCenter) * this.speed;
+}
     
     update() {
         if (this.caught) return;
