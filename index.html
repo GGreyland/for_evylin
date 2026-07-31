@@ -132,7 +132,7 @@ const imgGirl = new Image(); // Персонаж
 imgGirl.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/character.png'; 
 
 const imgBall = new Image(); // Мяч
-imgBall.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/ball.png';
+imgBall.src = 'https://raw.githubusercontent.com/GGGreyland/for_evylin/main/ball.png';
 
 const imgBg = new Image(); // Фон
 imgBg.src = 'https://raw.githubusercontent.com/GGreyland/for_evylin/main/field.png';
@@ -147,14 +147,12 @@ function resizeCanvas() {
     }
 }
 
-// Класс мяча
 class Ball {
     constructor(index) {
         this.index = index;
         this.reset();
     }
     
-    // Генерирует новую траекторию полета
     reset() {
         const edges = ['top', 'right', 'bottom', 'left'];
         const edge = edges[Math.floor(Math.random() * edges.length)];
@@ -187,10 +185,9 @@ class Ball {
         
         this.speed = 0.8 + Math.random() * 1; // Скорость от 0.8 до 1.8 пикселя в кадр
         this.vx = Math.cos(randomAngle) * this.speed;
-        this.vy = Math.sin(randomAngle) * this.speed;
+        this.vy = Math.sin(randomAngle) * this.sign(angleToCenter) * this.speed;
     }
 
-    // Обновляет положение мяча
     update() {
         if (this.caught) return;
         
@@ -210,7 +207,6 @@ class Ball {
         // Проверяем только тот мяч, который сейчас летит
         if (currentBallIndex !== this.index) return;
 
-        // Проверка на сбор девочкой
         const dx = girl.x - this.x;
         const dy = girl.y - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -222,9 +218,8 @@ class Ball {
         }
     }
 
-    // Рисует мяч
     draw() {
-        // Подсветка золотым контуром
+        // Подсветка золотым контуром остается поверх картинки
         if (this.caught) {
             ctx.beginPath();
             ctx.lineWidth = 4;
@@ -233,17 +228,10 @@ class Ball {
             ctx.stroke();
         }
         
-        // Рисуем картинку или резервный круг
+        // Рисуем картинку мяча
         if (imgBall.complete) {
-            ctx.drawImage(
-                imgBall,
-                this.x - this.size / 2, // Левая верхняя точка
-                this.y - this.size / 2,
-                this.size,              // Ширина
-                this.size               // Высота
-            );
+            ctx.drawImage(imgBall, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
         } else {
-            ctx.beginPath();
             ctx.fillStyle = '#8b4513';
             ctx.ellipse(this.x, this.y, this.size, this.size, 0, 0, Math.PI * 2);
             ctx.fill();
@@ -251,7 +239,6 @@ class Ball {
     }
 }
 
-// Инициализация игры
 function initGame() {
     resizeCanvas();
     balls = [];
@@ -262,7 +249,6 @@ function initGame() {
     isPausedForPopup = false;
 }
 
-// Показывает плашку с поздравлением
 function showCongratulations(index) {
     isPausedForPopup = true;
     
@@ -277,7 +263,6 @@ function showCongratulations(index) {
     popup.classList.add('active');
 }
 
-// Закрывает плашку
 function hideCongratulations() {
     popup.classList.remove('active');
     setTimeout(() => {
@@ -294,7 +279,6 @@ function hideCongratulations() {
     }, 400); // Ждем завершения анимации CSS
 }
 
-// Конец игры
 function finishGame() {
     alert("Ты собрала все поздравления! Поздравляем!");
     initGame(); // Перезапуск цикла
@@ -442,6 +426,5 @@ window.addEventListener('resize', resizeCanvas);
 initGame();
 gameLoop();
 </script>
-
 </body>
 </html>
